@@ -1,6 +1,8 @@
-# Momentum Log
+# MOMENTUM
 
 A daily progress tracker for workouts, tasks, water and food. Plan your days ahead, check things off as you go, and see your progress over time.
+
+**Live:** https://michaelkokal.github.io/MOMENTUM/
 
 ## Features
 
