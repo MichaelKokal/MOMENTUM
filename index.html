@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Momentum Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+
+/* Layout: a day sheet (ring + four category cards) above a progress board of small-multiple bar charts. */
+:root {
+  --bg: #EDF1F5;
+  --surface: #FFFFFF;
+  --ink: #142030;
+  --muted: #5A6A7C;
+  --line: #D6DEE7;
+  --track: #E3E9EF;
+  --accent: #2F52F5;     /* tasks + overall */
+  --workout: #E2551B;
+  --water: #1592CF;
+  --kcal: #B97A0E;
+  --good: #1C9460;
+  --over: #D13A3A;
+  --on-color: #FFFFFF;
+  --shadow: 0 1px 2px rgba(20,32,48,.06), 0 6px 20px rgba(20,32,48,.06);
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D131A; --surface: #151D27; --ink: #E5ECF4; --muted: #8C9CAF; --line: #243041; --track: #1F2A38;
+    --accent: #7088FF; --workout: #FF7A42; --water: #45B6EE; --kcal: #E6A83A; --good: #3CC88B; --over: #FF6B6B;
+    --on-color: #0D131A; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D131A; --surface: #151D27; --ink: #E5ECF4; --muted: #8C9CAF; --line: #243041; --track: #1F2A38;
+  --accent: #7088FF; --workout: #FF7A42; --water: #45B6EE; --kcal: #E6A83A; --good: #3CC88B; --over: #FF6B6B;
+  --on-color: #0D131A; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 20px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- Top bar ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .04em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.brand svg { width: 22px; height: 22px; color: var(--accent); }
+.sync { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.sync[data-state="ok"]::before { background: var(--good); }
+.sync[data-state="busy"]::before { background: var(--kcal); animation: blink 1s infinite; }
+.sync[data-state="warn"]::before { background: var(--over); }
+@keyframes blink { 50% { opacity: .3; } }
+
+/* ---------- Day header ---------- */
+.day {
+  display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; box-shadow: var(--shadow);
+}
+.day-nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.day h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 46px); line-height: 1; margin: 4px 0 0; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.nav-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; transition: transform .15s, background .15s; }
+.nav-btn:hover { background: var(--track); }
+.nav-btn:active { transform: scale(.92); }
+.nav-btn svg { width: 18px; height: 18px; }
+.pill-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 99px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+.pill-btn:hover { background: var(--track); }
+.plan-note { margin-top: 10px; font-size: 13px; color: var(--muted); max-width: 52ch; }
+.day-meta { margin-top: 14px; display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.day-meta b { color: var(--ink); font-weight: 600; }
+
+.ring-wrap { position: relative; width: 132px; height: 132px; }
+.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 11; }
+.ring .bg { stroke: var(--track); }
+.ring .fg { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 326.73; stroke-dashoffset: 326.73; transition: stroke-dashoffset 1s cubic-bezier(.22,1,.36,1), stroke .4s; }
+.ring-wrap.full .ring .fg { stroke: var(--good); }
+.ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring-center .num { font-size: 38px; font-weight: 700; line-height: 1; }
+.ring-center .num small { font-size: 18px; }
+.ring-center .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.spark { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 2px; pointer-events: none; animation: burst .9s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes burst { 0% { transform: translate(0,0) rotate(0) scale(1); opacity: 1; } 100% { transform: translate(var(--x), var(--y)) rotate(220deg) scale(.4); opacity: 0; } }
+
+/* ---------- Cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 980px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #card-water { grid-column: 1 / -1; }
+}
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.card-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+.card-icon svg { width: 18px; height: 18px; }
+.card h2 { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.card .count { font-size: 22px; font-weight: 700; color: var(--c); }
+.card .count small { font-size: 14px; color: var(--muted); font-weight: 600; }
+#card-workouts { --c: var(--workout); }
+#card-tasks { --c: var(--accent); }
+#card-water { --c: var(--water); }
+#card-kcal { --c: var(--kcal); }
+#card-kcal.over { --c: var(--over); }
+
+.bar-track { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.bar-fill { height: 100%; width: 0; border-radius: inherit; background: var(--c); transition: width .9s cubic-bezier(.34,1.3,.5,1), background .3s; position: relative; overflow: hidden; }
+.bar-fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%); transform: translateX(-100%); animation: shine 2.8s ease-in-out infinite; }
+@keyframes shine { 60%, 100% { transform: translateX(100%); } }
+
+/* Checklist */
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.item { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; padding: 8px 8px 8px 6px; border-radius: 10px; transition: background .2s; }
+.item:hover { background: var(--bg); }
+.item.enter { animation: enter .35s cubic-bezier(.2,.8,.3,1); }
+.item.leave { animation: leave .3s ease forwards; pointer-events: none; }
+@keyframes enter { from { opacity: 0; transform: translateY(-8px) scale(.98); } }
+@keyframes leave { to { opacity: 0; transform: translateX(16px); } }
+.check { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); background: transparent; display: grid; place-items: center; padding: 0; transition: background .25s, border-color .25s; }
+.check:hover { border-color: var(--c); }
+.check svg { width: 16px; height: 16px; }
+.check path { fill: none; stroke: var(--on-color); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .35s ease .08s; }
+.item.done .check { background: var(--c); border-color: var(--c); }
+.item.done .check path { stroke-dashoffset: 0; }
+.item.pop .check { animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes pop { 40% { transform: scale(1.3); } }
+.item-text { min-width: 0; display: flex; flex-direction: column; }
+.item .name { overflow-wrap: anywhere; font-weight: 500; width: fit-content; background: linear-gradient(currentColor, currentColor) 0 55% / 0 1.5px no-repeat; transition: background-size .4s ease, color .3s; }
+.item.done .name { background-size: 100% 1.5px; color: var(--muted); }
+.item .detail { font-size: 12.5px; color: var(--muted); }
+.icon-btn { width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; opacity: .55; transition: opacity .15s, color .15s, background .15s; }
+.icon-btn svg { width: 16px; height: 16px; }
+.item:hover .icon-btn, .icon-btn:focus-visible { opacity: 1; }
+.icon-btn:hover { background: var(--track); color: var(--ink); }
+.icon-btn.repeat.on { opacity: 1; color: var(--c); }
+.empty { font-size: 13.5px; color: var(--muted); padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; }
+
+.add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.add input[type="text"], .add input[type="number"] { flex: 1 1 140px; min-width: 0; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.add input.small { flex: 0 1 110px; }
+.add input:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+.rep { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); user-select: none; }
+.rep input { accent-color: var(--c); width: 15px; height: 15px; }
+.add-btn { height: 38px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--c); color: var(--on-color); font-weight: 600; transition: transform .12s, filter .15s; }
+.add-btn:hover { filter: brightness(1.08); }
+.add-btn:active { transform: scale(.95); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; font-size: 12.5px; color: var(--muted); transition: border-color .15s, color .15s, transform .12s; }
+.chip:hover { border-color: var(--c); color: var(--ink); }
+.chip:active { transform: scale(.94); }
+
+/* Water */
+.water-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.big { font-family: var(--font-display); font-size: 44px; font-weight: 700; line-height: 1; }
+.big small { font-size: 18px; color: var(--muted); font-weight: 600; }
+.sub-line { font-size: 13px; color: var(--muted); }
+.glasses { display: flex; flex-wrap: wrap; gap: 8px; }
+.glass { width: 30px; height: 40px; padding: 0; border: 2px solid color-mix(in srgb, var(--water) 55%, var(--line)); border-top-width: 1px; border-radius: 3px 3px 9px 9px; background: transparent; position: relative; overflow: hidden; transition: transform .15s; }
+.glass:hover { transform: translateY(-2px); }
+.glass i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(var(--water), color-mix(in srgb, var(--water) 70%, #003)); transition: height .55s cubic-bezier(.3,1.3,.5,1); }
+.glass i::before { content: ""; position: absolute; left: -50%; top: -4px; width: 200%; height: 8px; border-radius: 45%; background: var(--water); animation: wave 2.4s linear infinite; }
+@keyframes wave { to { transform: translateX(25%); } }
+.glass.full i { height: 100%; }
+.glass.extra { border-style: dashed; }
+.stepper { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-left: auto; }
+.stepper button { width: 42px; height: 38px; border: 0; background: var(--bg); font-size: 20px; font-weight: 600; transition: background .15s; }
+.stepper button:hover { background: var(--track); }
+.stepper button + button { border-left: 1px solid var(--line); }
+.goal-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.goal-row input { width: 80px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+
+/* Calories */
+.meal { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 6px 6px 6px 10px; border-radius: 10px; }
+.meal:hover { background: var(--bg); }
+.meal.enter { animation: enter .35s cubic-bezier(.2,.8,.3,1); }
+.meal.leave { animation: leave .3s ease forwards; }
+.meal .name { overflow-wrap: anywhere; }
+.meal .kc { font-family: var(--font-display); font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+.meal .icon-btn { opacity: .55; }
+.meal:hover .icon-btn { opacity: 1; }
+.meal .item-text { min-width: 0; display: flex; flex-direction: column; }
+.meal .detail { font-size: 12.5px; color: var(--muted); }
+
+/* Food lookup */
+.card.food { grid-column: 1 / -1; }
+.food-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.food-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.search { position: relative; display: grid; gap: 6px; }
+.search-box { position: relative; }
+.search-box svg { position: absolute; left: 12px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search-box input { width: 100%; height: 44px; padding: 0 12px 0 40px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.search-box input:focus { outline: none; border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+.results { position: absolute; z-index: 5; top: 72px; left: 0; right: 0; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); max-height: 340px; overflow-y: auto; animation: enter .2s ease; }
+.results li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.results li[aria-selected="true"], .results li:hover { background: var(--bg); }
+.results .r-name { overflow-wrap: anywhere; font-size: 14px; }
+.results .r-meta { font-size: 12px; color: var(--muted); display: block; margin-top: 1px; }
+.results .r-kcal { font-family: var(--font-display); font-weight: 700; font-size: 17px; text-align: right; white-space: nowrap; }
+.results .r-kcal small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 11px; color: var(--muted); }
+.results .r-none { cursor: default; color: var(--muted); font-size: 13.5px; display: block; }
+.tag { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 5px; background: var(--track); color: var(--muted); margin-right: 6px; }
+
+.pick { border: 1px solid color-mix(in srgb, var(--c) 45%, var(--line)); background: color-mix(in srgb, var(--c) 6%, var(--surface)); border-radius: 14px; padding: 14px; display: grid; gap: 12px; animation: enter .3s cubic-bezier(.2,.8,.3,1); }
+.pick-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.pick-name { font-weight: 600; overflow-wrap: anywhere; }
+.pick-src { font-size: 12px; color: var(--muted); }
+.pick-amount { display: flex; gap: 8px; flex-wrap: wrap; }
+.pick-amount input { width: 84px; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.pick-amount select { flex: 1 1 180px; min-width: 0; height: 38px; padding: 0 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; color: inherit; }
+.pick-nutr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pick-nutr div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.pick-nutr .num { display: block; font-size: 22px; font-weight: 700; line-height: 1.1; }
+.pick-nutr .num small { font-size: 12px; color: var(--muted); font-weight: 600; }
+.pick-nutr .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.pick-nutr .kcal { border-color: var(--c); }
+.pick .add-btn { justify-self: start; }
+
+.macros { display: grid; gap: 12px; }
+.macro { display: grid; gap: 5px; --m: var(--kcal); }
+.macro.hit { --m: var(--good); }
+.macro.over { --m: var(--over); }
+.macro-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13.5px; }
+.macro-top b { font-weight: 600; }
+.macro-top .hint { font-size: 11.5px; color: var(--muted); margin-left: 6px; font-weight: 400; }
+.macro-val { font-variant-numeric: tabular-nums; color: var(--muted); }
+.macro-val strong { color: var(--ink); font-weight: 600; }
+.macro .bar-track { height: 8px; }
+.macro .bar-fill { background: var(--m); }
+.manual summary, .goals summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); padding: 4px 0; width: fit-content; }
+.manual summary:hover, .goals summary:hover { color: var(--ink); }
+.manual form { margin-top: 10px; }
+.goal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin: 10px 0 8px; }
+.goal-grid label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.goal-grid input { width: 76px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); margin-left: auto; }
+.src-note { font-size: 12px; color: var(--muted); margin: 0; max-width: 60ch; }
+.src-note a, .pick-src { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+#chart-protein { --c: var(--workout); }
+
+#card-kcal.over > .bar-track .bar-fill { background: repeating-linear-gradient(-45deg, var(--over) 0 8px, color-mix(in srgb, var(--over) 75%, var(--surface)) 8px 16px); }
+
+/* ---------- Progress board ---------- */
+.board { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; display: grid; gap: 22px; }
+.board-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.board-head h2 { margin: 0; font-family: var(--font-display); font-size: 28px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+.seg { display: inline-flex; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--muted); transition: background .2s, color .2s; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stat { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.stat .num { font-size: 32px; font-weight: 700; line-height: 1.05; display: block; margin-top: 4px; }
+.stat .num small { font-size: 15px; color: var(--muted); }
+.charts { display: grid; gap: 18px; }
+.chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.chart-head .key { font-size: 12px; color: var(--muted); }
+.plot { position: relative; height: 96px; border-bottom: 1px solid var(--line); }
+.plot .grid-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); }
+.plot .goal { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted); z-index: 1; pointer-events: none; transition: bottom .6s ease; }
+.plot .goal span { position: absolute; right: 0; top: -18px; font-size: 11px; color: var(--muted); background: var(--surface); padding: 0 4px; }
+.cols, .xlabels { display: flex; gap: 3px; height: 100%; }
+.col { flex: 1 1 0; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; position: relative; border-radius: 4px 4px 0 0; }
+.col:hover { background: color-mix(in srgb, var(--c) 8%, transparent); }
+.col.sel { background: color-mix(in srgb, var(--c) 12%, transparent); }
+.col .b { position: absolute; left: 12%; right: 12%; bottom: 0; height: 0; border-radius: 4px 4px 1px 1px; background: var(--c); transition: height .8s cubic-bezier(.34,1.25,.5,1), background .3s; }
+.col .b.none { height: 3px !important; background: var(--track); }
+.col .b.hit { background: var(--good); }
+.col .b.over { background: var(--over); }
+.xlabels { height: auto; margin-top: 6px; }
+.xlabels span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 10.5px; color: var(--muted); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.xlabels span.today { color: var(--ink); font-weight: 700; }
+#chart-check { --c: var(--accent); }
+#chart-water { --c: var(--water); }
+#chart-kcal { --c: var(--kcal); }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13.5px; max-width: calc(100% - 32px); transition: opacity .25s, transform .25s; pointer-events: none; z-index: 20; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; }
+
+@media (max-width: 760px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .food-grid { grid-template-columns: minmax(0, 1fr); }
+  .pick-nutr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .day { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+  .ring-wrap { justify-self: start; width: 112px; height: 112px; }
+  .ring-center .num { font-size: 32px; }
+  .board { padding: 18px; }
+  .icon-btn { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-6 4 4 8-10"/><path d="M15 5h5v5"/></svg>
+      Momentum
+    </div>
+    <div class="sync" id="sync" data-state="busy">Loading your log…</div>
+  </div>
+
+  <main class="wrap" style="gap:16px">
+    <section class="day" aria-label="Selected day">
+      <div>
+        <div class="day-nav">
+          <button class="nav-btn" id="prev-day" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="nav-btn" id="next-day" aria-label="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+          <span class="label" id="day-eyebrow">Today</span>
+          <button class="pill-btn" id="today-btn" hidden>Back to today</button>
+        </div>
+        <h1 id="day-title">Today</h1>
+        <p class="plan-note" id="plan-note" hidden>You're planning ahead. Workouts and tasks you add here will be waiting on this day, ready to check off.</p>
+        <div class="day-meta">
+          <span>Workouts <b id="meta-workouts">0/0</b></span>
+          <span>Tasks <b id="meta-tasks">0/0</b></span>
+          <span>Water <b id="meta-water">0 glasses</b></span>
+          <span>Calories <b id="meta-kcal">0 kcal</b></span>
+          <span>Protein <b id="meta-protein">0 g</b></span>
+        </div>
+      </div>
+      <div class="ring-wrap" id="ring-wrap">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="ring-fg" cx="60" cy="60" r="52"/></svg>
+        <div class="ring-center"><div class="num"><span id="ring-num" data-v="0">0</span><small>%</small></div><div class="sub" id="ring-sub">Nothing planned</div></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card" id="card-workouts">
+        <div class="card-head">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg></div>
+          <h2>Workouts</h2>
+          <span class="count num" id="workouts-count">0<small>/0</small></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="workouts-bar"></div></div>
+        <ul class="list" id="workouts-list"></ul>
+        <p class="empty" id="workouts-empty">No workouts on this day yet. Add one below or tap a suggestion.</p>
+        <form class="add" id="workout-form" autocomplete="off">
+          <input type="text" id="workout-name" placeholder="Workout, e.g. Bench press" aria-label="Workout name" maxlength="80">
+          <input type="text" id="workout-detail" class="small" placeholder="3×10, 30 min" aria-label="Sets, reps or time" maxlength="40">
+          <label class="rep"><input type="checkbox" id="workout-repeat"> Every day</label>
+          <button class="add-btn" type="submit">Add</button>
+        </form>
+        <div class="chips" id="workout-chips">
+          <button class="chip" data-name="Push-ups" data-detail="3×15">Push-ups 3×15</button>
+          <button class="chip" data-name="Squats" data-detail="4×10">Squats 4×10</button>
+          <button class="chip" data-name="Run" data-detail="30 min">Run 30 min</button>
+          <button class="chip" data-name="Plank" data-detail="3×1 min">Plank 3×1 min</button>
+          <button class="chip" data-name="Stretch" data-detail="15 min">Stretch 15 min</button>
+        </div>
+      </section>
+
+      <section class="card" id="card-tasks">
+        <div class="card-head">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></svg></div>
+          <h2>Daily tasks</h2>
+          <span class="count num" id="tasks-count">0<small>/0</small></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="tasks-bar"></div></div>
+        <ul class="list" id="tasks-list"></ul>
+        <p class="empty" id="tasks-empty">No tasks on this day yet. Add what you need to get done.</p>
+        <form class="add" id="task-form" autocomplete="off">
+          <input type="text" id="task-name" placeholder="Task, e.g. Read 20 pages" aria-label="Task" maxlength="100">
+          <label class="rep"><input type="checkbox" id="task-repeat"> Every day</label>
+          <button class="add-btn" type="submit">Add</button>
+        </form>
+      </section>
+
+      <section class="card" id="card-water">
+        <div class="card-head">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg></div>
+          <h2>Water</h2>
+          <span class="count num" id="water-pct">0<small>%</small></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="water-bar"></div></div>
+        <div class="water-row">
+          <div>
+            <div class="big"><span id="water-num" data-v="0">0</span> <small id="water-of">/ 8 glasses</small></div>
+            <div class="sub-line" id="water-ml">0 ml</div>
+          </div>
+          <div class="stepper">
+            <button id="water-minus" aria-label="Remove a glass">−</button>
+            <button id="water-plus" aria-label="Add a glass">+</button>
+          </div>
+        </div>
+        <div class="glasses" id="glasses" aria-label="Glasses of water, tap to fill"></div>
+        <label class="goal-row">Daily goal <input type="number" id="water-goal" min="1" max="30" step="1"> glasses (250 ml each)</label>
+      </section>
+
+      <section class="card food" id="card-kcal">
+        <div class="card-head">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.2 1-3.6 2-4.6.3 1.6 1 2.6 2 3.1C11 9 11 6 12 3z"/></svg></div>
+          <h2>Food &amp; nutrition</h2>
+          <span class="count num" id="kcal-pct">0<small>%</small></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="kcal-bar"></div></div>
+        <div class="food-grid">
+          <div class="food-col">
+            <div>
+              <div class="big"><span id="kcal-num" data-v="0">0</span> <small id="kcal-of">/ 2,200 kcal</small></div>
+              <div class="sub-line" id="kcal-left">2,200 kcal left</div>
+            </div>
+
+            <div class="search">
+              <label class="label" for="food-q">Look up a food</label>
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+                <input type="search" id="food-q" placeholder="Search foods, e.g. banana, grilled chicken, pizza" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="food-results" aria-autocomplete="list">
+              </div>
+              <ul class="results" id="food-results" role="listbox" hidden></ul>
+              <div class="sub-line" id="food-status">Loading the food database…</div>
+            </div>
+
+            <div class="pick" id="pick" hidden>
+              <div class="pick-head">
+                <div class="pick-title">
+                  <div class="pick-name" id="pick-name"></div>
+                  <a class="pick-src" id="pick-src" target="_blank" rel="noopener">USDA FoodData Central</a>
+                </div>
+                <button class="icon-btn" id="pick-close" type="button" aria-label="Close">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+              </div>
+              <div class="pick-amount">
+                <input type="number" id="pick-qty" min="0.1" step="0.25" value="1" aria-label="Amount">
+                <select id="pick-portion" aria-label="Serving size"></select>
+              </div>
+              <div class="pick-nutr" id="pick-nutr"></div>
+              <button class="add-btn" id="pick-log" type="button">Log it</button>
+            </div>
+
+            <ul class="list" id="meals-list"></ul>
+            <p class="empty" id="meals-empty">Nothing logged yet. Search for a food above to see its calories and macros.</p>
+
+            <details class="manual">
+              <summary>Enter calories yourself</summary>
+              <form class="add" id="meal-form" autocomplete="off">
+                <input type="text" id="meal-name" placeholder="Food, e.g. Grandma's lasagna" aria-label="Food" maxlength="80">
+                <input type="number" id="meal-kcal" class="small" placeholder="kcal" aria-label="Calories" min="1" max="10000" step="1">
+                <input type="number" id="meal-protein" class="small" placeholder="Protein g" aria-label="Protein in grams (optional)" min="0" max="500" step="0.1">
+                <button class="add-btn" type="submit">Log</button>
+              </form>
+            </details>
+          </div>
+
+          <div class="food-col macros-col">
+            <div class="label">Macros for this day</div>
+            <div class="macros" id="macros"></div>
+            <details class="goals">
+              <summary>Edit daily goals</summary>
+              <div class="goal-grid">
+                <label>Calories <input type="number" id="kcal-goal" min="500" max="10000" step="50"> kcal</label>
+                <label>Protein <input type="number" data-goal="protein" min="1" max="500"> g</label>
+                <label>Carbs <input type="number" data-goal="carbs" min="1" max="1000"> g</label>
+                <label>Sugar <input type="number" data-goal="sugar" min="1" max="500"> g</label>
+                <label>Fat <input type="number" data-goal="fat" min="1" max="500"> g</label>
+                <label>Sat. fat <input type="number" data-goal="satfat" min="1" max="200"> g</label>
+                <label>Fiber <input type="number" data-goal="fiber" min="1" max="200"> g</label>
+                <label>Sodium <input type="number" data-goal="sodium" min="100" max="10000"> mg</label>
+              </div>
+              <p class="sub-line">Starting goals are the FDA Daily Values for a 2,000 kcal diet. Change them to fit your plan.</p>
+            </details>
+            <p class="src-note">Nutrition facts come from <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener">USDA FoodData Central</a>: SR Legacy (lab-analyzed foods) and FNDDS (foods as eaten, from the national dietary survey). Values are per serving you choose, scaled from USDA's per-100 g data.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="board" aria-label="Progress over time">
+      <div class="board-head">
+        <div>
+          <div class="label">Progress over time</div>
+          <h2 id="board-title">Last 14 days</h2>
+        </div>
+        <div class="seg" id="range-seg" role="group" aria-label="Range">
+          <button data-range="7" aria-pressed="false">7 days</button>
+          <button data-range="14" aria-pressed="true">14 days</button>
+          <button data-range="30" aria-pressed="false">30 days</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Current streak</div><span class="num"><span id="st-streak" data-v="0">0</span> <small id="st-streak-unit">days</small></span></div>
+        <div class="stat"><div class="label">Workouts done</div><span class="num" id="st-workouts" data-v="0">0</span></div>
+        <div class="stat"><div class="label">Avg water</div><span class="num"><span id="st-water" data-v="0">0</span> <small>glasses</small></span></div>
+        <div class="stat"><div class="label">Avg calories</div><span class="num"><span id="st-kcal" data-v="0">0</span> <small>kcal</small></span></div>
+      </div>
+      <div class="charts">
+        <div class="chart" id="chart-check">
+          <div class="chart-head"><span class="label">Checklist completed</span><span class="key">Green = everything done</span></div>
+          <div class="plot"><div class="grid-line" style="bottom:50%"></div><div class="goal" style="bottom:100%"><span>100%</span></div><div class="cols"></div></div>
+          <div class="xlabels"></div>
+        </div>
+        <div class="chart" id="chart-water">
+          <div class="chart-head"><span class="label">Water</span><span class="key">Glasses per day</span></div>
+          <div class="plot"><div class="goal"><span></span></div><div class="cols"></div></div>
+          <div class="xlabels"></div>
+        </div>
+        <div class="chart" id="chart-kcal">
+          <div class="chart-head"><span class="label">Calories</span><span class="key">Red = over goal</span></div>
+          <div class="plot"><div class="goal"><span></span></div><div class="cols"></div></div>
+          <div class="xlabels"></div>
+        </div>
+        <div class="chart" id="chart-protein">
+          <div class="chart-head"><span class="label">Protein</span><span class="key">Grams per day, green = goal reached</span></div>
+          <div class="plot"><div class="goal"><span></span></div><div class="cols"></div></div>
+          <div class="xlabels"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const GLASS_ML = 250;
+  const RING_C = 326.73;
+  const LS_KEY = 'momentum-log-v1';
+  const nf = new Intl.NumberFormat();
+
+  const pad = n => String(n).padStart(2, '0');
+  const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parseKey = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (k, n) => { const d = parseKey(k); d.setDate(d.getDate() + n); return keyOf(d); };
+  const dayDiff = (a, b) => Math.round((parseKey(a) - parseKey(b)) / 864e5);
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3);
+  const clone = o => JSON.parse(JSON.stringify(o));
+
+  // FDA Daily Values (2,000 kcal reference diet). `type`: min = reach it, max = stay under, goal = neutral.
+  const MACROS = [
+    { key: 'protein', label: 'Protein', unit: 'g', def: 50, type: 'min' },
+    { key: 'carbs', label: 'Carbs', unit: 'g', def: 275, type: 'goal' },
+    { key: 'sugar', label: 'Sugar', unit: 'g', def: 50, type: 'max' },
+    { key: 'fat', label: 'Fat', unit: 'g', def: 78, type: 'max' },
+    { key: 'satfat', label: 'Saturated fat', unit: 'g', def: 20, type: 'max' },
+    { key: 'fiber', label: 'Fiber', unit: 'g', def: 28, type: 'min' },
+    { key: 'sodium', label: 'Sodium', unit: 'mg', def: 2300, type: 'max' },
+  ];
+  const DEFAULT_MACRO_GOALS = Object.fromEntries(MACROS.map(m => [m.key, m.def]));
+
+  const state = {
+    settings: { waterGoal: 8, calorieGoal: 2200, macroGoals: { ...DEFAULT_MACRO_GOALS }, routine: { tasks: [], workouts: [] } },
+    days: {},
+    today: keyOf(new Date()),
+    view: keyOf(new Date()),
+    range: 14,
+    loaded: false,
+    justToggled: null,
+  };
+
+  /* ---------- Data helpers ---------- */
+  function normSettings(s) {
+    const r = s.routine || {}, mg = s.macroGoals || {};
+    return {
+      waterGoal: Math.max(1, +s.waterGoal || 8),
+      calorieGoal: Math.max(1, +s.calorieGoal || 2200),
+      macroGoals: Object.fromEntries(MACROS.map(m => [m.key, +mg[m.key] > 0 ? +mg[m.key] : m.def])),
+      routine: { tasks: Array.isArray(r.tasks) ? r.tasks : [], workouts: Array.isArray(r.workouts) ? r.workouts : [] },
+    };
+  }
+  function normDay(o, key) {
+    return {
+      date: key,
+      tasks: Array.isArray(o.tasks) ? o.tasks : [],
+      workouts: Array.isArray(o.workouts) ? o.workouts : [],
+      water: Math.max(0, +o.water || 0),
+      meals: Array.isArray(o.meals) ? o.meals : [],
+    };
+  }
+  // Days not saved yet: today and future days start from the daily routine; past days start empty.
+  function getDay(key, create) {
+    if (state.days[key]) return state.days[key];
+    const r = state.settings.routine;
+    const fresh = { date: key, tasks: [], workouts: [], water: 0, meals: [] };
+    if (key >= state.today) {
+      fresh.tasks = r.tasks.map(x => ({ id: x.id, rid: x.id, name: x.name, done: false }));
+      fresh.workouts = r.workouts.map(x => ({ id: x.id, rid: x.id, name: x.name, detail: x.detail || '', done: false }));
+    }
+    if (create) state.days[key] = fresh;
+    return fresh;
+  }
+  const completion = d => {
+    const all = d.tasks.concat(d.workouts);
+    return { done: all.filter(i => i.done).length, total: all.length };
+  };
+  const kcalOf = d => d.meals.reduce((s, m) => s + (+m.kcal || 0), 0);
+  const macroOf = (d, key) => d.meals.reduce((s, m) => s + (+m[key] || 0), 0);
+  const fmtAmt = (v, unit) => unit === 'mg' ? nf.format(Math.round(v)) : (v >= 100 ? nf.format(Math.round(v)) : (Math.round(v * 10) / 10).toString());
+
+  /* ---------- Saving ---------- */
+  // Changes are batched briefly, then the whole log is written to localStorage.
+  let saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 300);
+    setSync('busy', 'Saving…');
+  }
+  function flush() {
+    saveTimer = null;
+    try {
+      saveLocal();
+      setSync('ok', 'Saved in this browser');
+    } catch (e) {
+      toast('Could not save that change. Your browser storage may be full or turned off.');
+      setSync('warn', 'Not saved');
+    }
+  }
+  function loadLocal() {
+    try {
+      const o = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+      if (o && o.settings) state.settings = normSettings(o.settings);
+      if (o && o.days) for (const k in o.days) state.days[k] = normDay(o.days[k], k);
+    } catch (e) {}
+  }
+  function saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ settings: state.settings, days: state.days })); }
+    catch (e) { throw { code: 'local' }; }
+  }
+
+  function mutateDay(key, fn) {
+    const d = getDay(key, true);
+    fn(d);
+    scheduleSave('day-' + key);
+    render();
+  }
+  function saveSettings() { scheduleSave('settings'); render(); }
+
+  /* ---------- UI helpers ---------- */
+  function setSync(s, text) { const el = $('#sync'); el.dataset.state = s; el.textContent = text; }
+  let toastTimer;
+  function toast(msg) {
+    const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3800);
+  }
+  function countTo(el, to, fmt = v => nf.format(Math.round(v))) {
+    const from = el.dataset.v == null ? to : +el.dataset.v;
+    el.dataset.v = to;
+    cancelAnimationFrame(el._raf);
+    if (reduce || from === to) { el.textContent = fmt(to); return; }
+    const t0 = performance.now(), dur = 700;
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (p < 1) el._raf = requestAnimationFrame(step);
+    };
+    el._raf = requestAnimationFrame(step);
+  }
+  const setBar = (el, frac) => { el.style.width = (Math.max(0, Math.min(1, frac)) * 100).toFixed(1) + '%'; };
+  const fmtDate = k => parseKey(k).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  function syncList(ul, items, make, update) {
+    const existing = new Map();
+    for (const li of ul.children) if (!li.classList.contains('leave')) existing.set(li.dataset.id, li);
+    let prev = null;
+    for (const it of items) {
+      let li = existing.get(it.id);
+      if (li) existing.delete(it.id);
+      else {
+        li = make(it); li.dataset.id = it.id;
+        if (state.loaded && !reduce) { li.classList.add('enter'); li.addEventListener('animationend', () => li.classList.remove('enter'), { once: true }); }
+      }
+      update(li, it);
+      const want = prev ? prev.nextSibling : ul.firstChild;
+      if (li !== want) ul.insertBefore(li, want);
+      prev = li;
+    }
+    existing.forEach(li => {
+      if (reduce) return li.remove();
+      li.classList.add('leave');
+      setTimeout(() => li.remove(), 320);
+    });
+  }
+
+  const ICON_REPEAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  function makeItem() {
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.innerHTML = `<button class="check" type="button"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      <div class="item-text"><span class="name"></span><span class="detail"></span></div>
+      <button class="icon-btn repeat" type="button">${ICON_REPEAT}</button>
+      <button class="icon-btn del" type="button" title="Remove from this day" aria-label="Remove from this day">${ICON_X}</button>`;
+    return li;
+  }
+
+  /* ---------- Render ---------- */
+  function render() {
+    const day = getDay(state.view);
+    renderHeader(day);
+    renderChecklist('workouts', day);
+    renderChecklist('tasks', day);
+    renderWater(day);
+    renderCalories(day);
+    renderHistory();
+    state.justToggled = null;
+  }
+
+  function renderHeader(day) {
+    const diff = dayDiff(state.view, state.today);
+    $('#day-eyebrow').textContent = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday' : diff > 0 ? `In ${diff} days` : `${-diff} days ago`;
+    $('#day-title').textContent = fmtDate(state.view);
+    $('#today-btn').hidden = diff === 0;
+    $('#plan-note').hidden = diff <= 0;
+    const c = completion(day);
+    const p = c.total ? c.done / c.total : 0;
+    $('#ring-fg').style.strokeDashoffset = (RING_C * (1 - p)).toFixed(2);
+    $('#ring-wrap').classList.toggle('full', c.total > 0 && c.done === c.total);
+    countTo($('#ring-num'), Math.round(p * 100));
+    $('#ring-sub').textContent = c.total ? `${c.done} of ${c.total} done` : 'Nothing planned';
+    const w = day.workouts, t = day.tasks;
+    $('#meta-workouts').textContent = `${w.filter(i => i.done).length}/${w.length}`;
+    $('#meta-tasks').textContent = `${t.filter(i => i.done).length}/${t.length}`;
+    $('#meta-water').textContent = `${day.water} of ${state.settings.waterGoal} glasses`;
+    $('#meta-kcal').textContent = `${nf.format(kcalOf(day))} kcal`;
+    $('#meta-protein').textContent = `${fmtAmt(macroOf(day, 'protein'), 'g')} g`;
+  }
+
+  function renderChecklist(kind, day) {
+    const items = day[kind];
+    const routineIds = new Set(state.settings.routine[kind].map(r => r.id));
+    syncList($('#' + kind + '-list'), items, makeItem, (li, it) => {
+      li.querySelector('.name').textContent = it.name;
+      const det = li.querySelector('.detail');
+      det.textContent = it.detail || ''; det.hidden = !it.detail;
+      const rep = !!(it.rid && routineIds.has(it.rid));
+      const rb = li.querySelector('.repeat');
+      rb.classList.toggle('on', rep);
+      rb.setAttribute('aria-pressed', rep);
+      rb.title = rep ? 'Repeats every day. Click to stop repeating.' : 'Repeat every day';
+      rb.setAttribute('aria-label', rb.title);
+      const was = li.classList.contains('done');
+      li.classList.toggle('done', !!it.done);
+      const cb = li.querySelector('.check');
+      cb.setAttribute('aria-pressed', !!it.done);
+      cb.setAttribute('aria-label', (it.done ? 'Mark not done: ' : 'Mark done: ') + it.name);
+      if (!was && it.done && state.justToggled === it.id && !reduce) {
+        li.classList.remove('pop'); void li.offsetWidth; li.classList.add('pop');
+      }
+    });
+    $('#' + kind + '-empty').hidden = items.length > 0;
+    const done = items.filter(i => i.done).length;
+    $('#' + kind + '-count').innerHTML = `${done}<small>/${items.length}</small>`;
+    setBar($('#' + kind + '-bar'), items.length ? done / items.length : 0);
+  }
+
+  let lastWater = 0;
+  function renderWater(day) {
+    const goal = state.settings.waterGoal, w = day.water;
+    countTo($('#water-num'), w);
+    $('#water-of').textContent = `/ ${goal} glasses`;
+    $('#water-ml').textContent = `${nf.format(w * GLASS_ML)} ml of ${nf.format(goal * GLASS_ML)} ml`;
+    $('#water-pct').innerHTML = `${Math.round(w / goal * 100)}<small>%</small>`;
+    setBar($('#water-bar'), w / goal);
+    const box = $('#glasses'), n = Math.max(goal, w);
+    while (box.children.length < n) {
+      const b = document.createElement('button');
+      b.className = 'glass'; b.type = 'button'; b.innerHTML = '<i></i>';
+      box.appendChild(b);
+    }
+    while (box.children.length > n) box.lastChild.remove();
+    const lo = Math.min(lastWater, w);
+    [...box.children].forEach((g, i) => {
+      g.classList.toggle('full', i < w);
+      g.classList.toggle('extra', i >= goal);
+      g.style.transitionDelay = '0s';
+      g.firstChild.style.transitionDelay = reduce ? '0s' : (Math.max(0, i - lo) * 0.05) + 's';
+      g.setAttribute('aria-label', `Glass ${i + 1}${i < w ? ', filled' : ''}`);
+    });
+    lastWater = w;
+    const gi = $('#water-goal');
+    if (document.activeElement !== gi) gi.value = goal;
+  }
+
+  function makeMeal() {
+    const li = document.createElement('li');
+    li.className = 'meal';
+    li.innerHTML = `<div class="item-text"><span class="name"></span><span class="detail"></span></div><span class="kc"></span><button class="icon-btn del" type="button" aria-label="Remove">${ICON_X}</button>`;
+    return li;
+  }
+  function mealDetail(m) {
+    const parts = [];
+    if (m.serving) parts.push(m.serving);
+    const mac = [['P', 'protein'], ['C', 'carbs'], ['F', 'fat'], ['Sugar ', 'sugar']]
+      .filter(([, k]) => m[k] != null).map(([l, k]) => `${l}${l.length > 1 ? '' : ' '}${fmtAmt(+m[k], 'g')} g`);
+    if (mac.length) parts.push(mac.join(' · '));
+    return parts.join(' — ');
+  }
+  let macroRows = null;
+  function renderMacros(day) {
+    const box = $('#macros'), goals = state.settings.macroGoals;
+    if (!macroRows) {
+      macroRows = {};
+      for (const m of MACROS) {
+        const row = document.createElement('div');
+        row.className = 'macro';
+        const hint = m.type === 'min' ? 'goal' : m.type === 'max' ? 'limit' : '';
+        row.innerHTML = `<div class="macro-top"><b>${m.label}${hint ? `<span class="hint">${hint}</span>` : ''}</b><span class="macro-val"><strong>0</strong> / ${goals[m.key]} ${m.unit}</span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
+        box.appendChild(row);
+        macroRows[m.key] = row;
+      }
+    }
+    for (const m of MACROS) {
+      const row = macroRows[m.key], v = macroOf(day, m.key), g = goals[m.key];
+      row.classList.toggle('hit', m.type === 'min' && v >= g);
+      row.classList.toggle('over', m.type === 'max' && v > g);
+      row.querySelector('.macro-val').innerHTML = `<strong>${fmtAmt(v, m.unit)}</strong> / ${nf.format(g)} ${m.unit}`;
+      setBar(row.querySelector('.bar-fill'), v / g);
+    }
+    document.querySelectorAll('[data-goal]').forEach(inp => {
+      if (document.activeElement !== inp) inp.value = goals[inp.dataset.goal];
+    });
+  }
+  function renderCalories(day) {
+    const goal = state.settings.calorieGoal, total = kcalOf(day), left = goal - total;
+    countTo($('#kcal-num'), total);
+    $('#kcal-of').textContent = `/ ${nf.format(goal)} kcal`;
+    $('#kcal-left').textContent = left >= 0 ? `${nf.format(left)} kcal left` : `${nf.format(-left)} kcal over your goal`;
+    $('#kcal-pct').innerHTML = `${Math.round(total / goal * 100)}<small>%</small>`;
+    $('#card-kcal').classList.toggle('over', total > goal);
+    setBar($('#kcal-bar'), total / goal);
+    syncList($('#meals-list'), day.meals, makeMeal, (li, m) => {
+      li.querySelector('.name').textContent = m.name;
+      const det = li.querySelector('.detail'), dt = mealDetail(m);
+      det.textContent = dt; det.hidden = !dt;
+      li.querySelector('.kc').textContent = nf.format(m.kcal);
+      li.querySelector('.del').setAttribute('aria-label', 'Remove ' + m.name);
+    });
+    renderMacros(day);
+    $('#meals-empty').hidden = day.meals.length > 0;
+    const gi = $('#kcal-goal');
+    if (document.activeElement !== gi) gi.value = goal;
+  }
+
+  /* ---------- History ---------- */
+  let chartSig = '';
+  function renderHistory() {
+    const N = state.range, today = state.today;
+    const keys = [];
+    for (let i = N - 1; i >= 0; i--) keys.push(addDays(today, -i));
+    const rows = keys.map(k => {
+      const d = state.days[k];
+      if (!d) return { k, pct: null, water: null, kcal: null, comp: null };
+      const c = completion(d);
+      const prot = macroOf(d, 'protein');
+      return { k, comp: c, pct: c.total ? c.done / c.total : null, water: d.water || null, kcal: d.meals.length ? kcalOf(d) : null, protein: prot > 0 ? prot : null, workouts: d.workouts.filter(w => w.done).length };
+    });
+    const wGoal = state.settings.waterGoal, kGoal = state.settings.calorieGoal, pGoal = state.settings.macroGoals.protein;
+    const wMax = Math.max(wGoal, ...rows.map(r => r.water || 0)) * 1.15;
+    const kMax = Math.max(kGoal, ...rows.map(r => r.kcal || 0)) * 1.15;
+    const pMax = Math.max(pGoal, ...rows.map(r => r.protein || 0)) * 1.15;
+
+    const sig = N + '|' + today;
+    const rebuild = sig !== chartSig;
+    chartSig = sig;
+    $('#board-title').textContent = `Last ${N} days`;
+    document.querySelectorAll('#range-seg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.range === N));
+
+    const charts = [
+      { el: $('#chart-check'), val: r => r.pct, max: 1, cls: r => r.pct === 1 ? 'hit' : '',
+        tip: r => r.comp && r.comp.total ? `${r.comp.done} of ${r.comp.total} done` : 'Nothing logged' },
+      { el: $('#chart-water'), val: r => r.water, max: wMax, goal: wGoal, goalLabel: `Goal ${wGoal}`, cls: r => r.water >= wGoal ? 'hit' : '',
+        tip: r => r.water ? `${r.water} glasses` : 'No water logged' },
+      { el: $('#chart-kcal'), val: r => r.kcal, max: kMax, goal: kGoal, goalLabel: `Goal ${nf.format(kGoal)}`, cls: r => r.kcal > kGoal ? 'over' : '',
+        tip: r => r.kcal ? `${nf.format(r.kcal)} kcal` : 'No calories logged' },
+      { el: $('#chart-protein'), val: r => r.protein, max: pMax, goal: pGoal, goalLabel: `Goal ${pGoal} g`, cls: r => r.protein >= pGoal ? 'hit' : '',
+        tip: r => r.protein ? `${fmtAmt(r.protein, 'g')} g protein` : 'No protein logged' },
+    ];
+    for (const ch of charts) {
+      const cols = ch.el.querySelector('.cols'), xl = ch.el.querySelector('.xlabels');
+      if (rebuild) {
+        cols.innerHTML = ''; xl.innerHTML = '';
+        rows.forEach((r, i) => {
+          const b = document.createElement('button');
+          b.className = 'col'; b.type = 'button'; b.dataset.k = r.k;
+          b.innerHTML = '<span class="b"></span>';
+          cols.appendChild(b);
+          const d = parseKey(r.k), s = document.createElement('span');
+          if (N <= 14) s.innerHTML = `${d.toLocaleDateString(undefined, { weekday: 'narrow' })}<br>${d.getDate()}`;
+          else s.textContent = (i % 5 === 4 || r.k === today) ? d.getDate() : '';
+          s.classList.toggle('today', r.k === today);
+          xl.appendChild(s);
+        });
+      }
+      if (ch.goal != null) {
+        const g = ch.el.querySelector('.goal');
+        g.style.bottom = (ch.goal / ch.max * 100) + '%';
+        g.querySelector('span').textContent = ch.goalLabel;
+      }
+      [...cols.children].forEach((b, i) => {
+        const r = rows[i], v = ch.val(r), bar = b.firstChild;
+        const label = `${fmtDate(r.k)}: ${ch.tip(r)}`;
+        b.title = label; b.setAttribute('aria-label', label);
+        b.classList.toggle('sel', r.k === state.view);
+        bar.className = 'b ' + (v == null ? 'none' : ch.cls(r));
+        const h = v == null ? 0 : Math.max(2, v / ch.max * 100);
+        if (rebuild && !reduce) {
+          bar.style.height = '0%';
+          bar.style.transitionDelay = (i * 0.018) + 's';
+          requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h + '%'; }));
+          setTimeout(() => { bar.style.transitionDelay = '0s'; }, 1200);
+        } else bar.style.height = h + '%';
+      });
+    }
+
+    // Stats
+    const full = k => { const d = state.days[k]; if (!d) return false; const c = completion(d); return c.total > 0 && c.done === c.total; };
+    let streak = 0, k = full(today) ? today : addDays(today, -1);
+    while (full(k) && streak < 3650) { streak++; k = addDays(k, -1); }
+    countTo($('#st-streak'), streak);
+    $('#st-streak-unit').textContent = streak === 1 ? 'day' : 'days';
+    countTo($('#st-workouts'), rows.reduce((s, r) => s + (r.workouts || 0), 0));
+    const wd = rows.filter(r => r.water), kd = rows.filter(r => r.kcal);
+    countTo($('#st-water'), wd.length ? wd.reduce((s, r) => s + r.water, 0) / wd.length : 0, v => v.toFixed(1));
+    countTo($('#st-kcal'), kd.length ? kd.reduce((s, r) => s + r.kcal, 0) / kd.length : 0);
+  }
+
+  function celebrate() {
+    if (reduce) return;
+    const wrap = $('#ring-wrap');
+    const colors = ['--accent', '--workout', '--water', '--kcal', '--good'];
+    for (let i = 0; i < 18; i++) {
+      const s = document.createElement('span');
+      s.className = 'spark';
+      const a = (i / 18) * Math.PI * 2 + Math.random() * 0.3, dist = 70 + Math.random() * 40;
+      s.style.setProperty('--x', (Math.cos(a) * dist).toFixed(1) + 'px');
+      s.style.setProperty('--y', (Math.sin(a) * dist).toFixed(1) + 'px');
+      s.style.background = `var(${colors[i % colors.length]})`;
+      wrap.appendChild(s);
+      setTimeout(() => s.remove(), 1000);
+    }
+    toast('Everything on your list is done. Nice work.');
+  }
+
+  /* ---------- Actions ---------- */
+  function toggleItem(kind, id) {
+    const before = completion(getDay(state.view));
+    state.justToggled = id;
+    mutateDay(state.view, d => { const it = d[kind].find(x => x.id === id); if (it) it.done = !it.done; });
+    const after = completion(getDay(state.view));
+    if (after.total && after.done === after.total && before.done < before.total) celebrate();
+  }
+  function toggleRepeat(kind, id) {
+    const routine = state.settings.routine[kind];
+    mutateDay(state.view, d => {
+      const it = d[kind].find(x => x.id === id);
+      if (!it) return;
+      const idx = it.rid ? routine.findIndex(r => r.id === it.rid) : -1;
+      if (idx >= 0) { routine.splice(idx, 1); delete it.rid; toast(`"${it.name}" won't be added to new days.`); }
+      else {
+        it.rid = it.rid || it.id;
+        routine.push(kind === 'workouts' ? { id: it.rid, name: it.name, detail: it.detail || '' } : { id: it.rid, name: it.name });
+        toast(`"${it.name}" will show up every day.`);
+      }
+    });
+    scheduleSave('settings');
+  }
+  function addItem(kind, name, detail, repeat) {
+    name = name.trim();
+    if (!name) return false;
+    const id = uid();
+    const item = kind === 'workouts' ? { id, name, detail: (detail || '').trim(), done: false } : { id, name, done: false };
+    if (repeat) {
+      item.rid = id;
+      state.settings.routine[kind].push(kind === 'workouts' ? { id, name, detail: item.detail } : { id, name });
+      scheduleSave('settings');
+    }
+    mutateDay(state.view, d => d[kind].push(item));
+    return true;
+  }
+
+  ['workouts', 'tasks'].forEach(kind => {
+    $('#' + kind + '-list').addEventListener('click', e => {
+      const li = e.target.closest('.item'); if (!li || li.classList.contains('leave')) return;
+      if (e.target.closest('.check')) toggleItem(kind, li.dataset.id);
+      else if (e.target.closest('.repeat')) toggleRepeat(kind, li.dataset.id);
+      else if (e.target.closest('.del')) mutateDay(state.view, d => { d[kind] = d[kind].filter(x => x.id !== li.dataset.id); });
+    });
+  });
+  $('#workout-form').addEventListener('submit', e => {
+    e.preventDefault();
+    if (addItem('workouts', $('#workout-name').value, $('#workout-detail').value, $('#workout-repeat').checked)) {
+      $('#workout-name').value = ''; $('#workout-detail').value = ''; $('#workout-name').focus();
+    }
+  });
+  $('#workout-chips').addEventListener('click', e => {
+    const c = e.target.closest('.chip'); if (c) addItem('workouts', c.dataset.name, c.dataset.detail, false);
+  });
+  $('#task-form').addEventListener('submit', e => {
+    e.preventDefault();
+    if (addItem('tasks', $('#task-name').value, '', $('#task-repeat').checked)) { $('#task-name').value = ''; $('#task-name').focus(); }
+  });
+
+  const setWater = n => mutateDay(state.view, d => { d.water = Math.max(0, Math.min(40, n)); });
+  $('#water-plus').addEventListener('click', () => setWater(getDay(state.view).water + 1));
+  $('#water-minus').addEventListener('click', () => setWater(getDay(state.view).water - 1));
+  $('#glasses').addEventListener('click', e => {
+    const g = e.target.closest('.glass'); if (!g) return;
+    const i = [...g.parentNode.children].indexOf(g) + 1, w = getDay(state.view).water;
+    setWater(w === i ? i - 1 : i);
+  });
+
+  $('#meal-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const kcal = Math.round(+$('#meal-kcal').value);
+    if (!kcal || kcal < 1) { $('#meal-kcal').focus(); toast('Enter the calories for this item.'); return; }
+    const name = $('#meal-name').value.trim() || 'Snack';
+    const prot = $('#meal-protein').value === '' ? null : Math.max(0, +$('#meal-protein').value);
+    const meal = { id: uid(), name, kcal };
+    if (prot != null) meal.protein = prot;
+    mutateDay(state.view, d => d.meals.push(meal));
+    $('#meal-name').value = ''; $('#meal-kcal').value = ''; $('#meal-protein').value = ''; $('#meal-name').focus();
+  });
+  document.querySelectorAll('[data-goal]').forEach(inp => inp.addEventListener('change', () => {
+    const v = Math.round(+inp.value), k = inp.dataset.goal;
+    if (v >= +inp.min && v <= +inp.max) { state.settings.macroGoals[k] = v; saveSettings(); }
+    else inp.value = state.settings.macroGoals[k];
+  }));
+
+  /* ---------- Food database (USDA FoodData Central) ---------- */
+  // Row layout: [name, src (0 SR Legacy, 1 FNDDS), fdcId, kcal, protein, fat, carbs, fiber, sugar, sodium, satfat, portions] per 100 g.
+  const F = { kcal: 3, protein: 4, fat: 5, carbs: 6, fiber: 7, sugar: 8, sodium: 9, satfat: 10, portions: 11 };
+  let foods = null, foodIndex = null, results = [], activeIdx = -1, picked = null;
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9%]+/g, ' ').trim();
+
+  async function loadFoods() {
+    try {
+      const res = await fetch('data/foods.json');
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      foods = data.foods;
+      foodIndex = foods.map(r => {
+        const n = norm(r[0]);
+        const firstStr = norm(r[0].split(',')[0]);
+        return { n, words: n.split(' '), first: firstStr.split(' '), firstStr };
+      });
+      $('#food-status').textContent = `${nf.format(foods.length)} foods with USDA nutrition facts. Pick one to choose a serving size.`;
+      if ($('#food-q').value.trim()) runSearch();
+    } catch (e) {
+      $('#food-status').textContent = "The food database didn't load. You can still enter calories yourself below.";
+    }
+  }
+
+  function searchFoods(q) {
+    let toks = norm(q).split(' ').filter(Boolean);
+    toks = toks.map(t => t.length > 3 && t.endsWith('s') && !t.endsWith('ss') ? t.slice(0, -1) : t);
+    if (!toks.length) return [];
+    const hits = [];
+    for (let i = 0; i < foods.length; i++) {
+      const ix = foodIndex[i];
+      let score = 0, ok = true;
+      for (const t of toks) {
+        let best = 0;
+        for (const w of ix.words) {
+          if (w === t || w === t + 's' || w === t + 'es') { best = 3; break; }
+          if (w.startsWith(t)) best = Math.max(best, 2);
+        }
+        if (!best) { ok = false; break; }
+        score += best;
+        if (ix.first.some(w => w.startsWith(t))) score += 6;
+      }
+      if (!ok) continue;
+      if (ix.words[0].startsWith(toks[0])) score += 8;
+      if (ix.firstStr === toks.join(' ') || ix.firstStr === toks.join(' ') + 's') score += 7;
+      if (foods[i][1] === 1) score += 4;           // foods as eaten read more naturally
+      if (/\braw\b/.test(ix.n)) score += 1;
+      score -= ix.n.length * 0.06;
+      hits.push([score, i]);
+    }
+    hits.sort((a, b) => b[0] - a[0]);
+    return hits.slice(0, 40).map(h => h[1]);
+  }
+
+  function portionsOf(r) {
+    const p = (r[F.portions] || []).map(([label, g]) => ({ label, g }));
+    return p;
+  }
+  function runSearch() {
+    const q = $('#food-q').value;
+    const ul = $('#food-results');
+    if (!q.trim()) { closeResults(); return; }
+    if (!foods) { ul.innerHTML = '<li class="r-none">Still loading the food database…</li>'; openResults(); return; }
+    results = searchFoods(q);
+    activeIdx = results.length ? 0 : -1;
+    ul.innerHTML = '';
+    if (!results.length) {
+      const li = document.createElement('li');
+      li.className = 'r-none';
+      li.textContent = 'No match. Try a simpler word, like "chicken" or "yogurt", or enter calories yourself below.';
+      ul.appendChild(li);
+    }
+    results.forEach((fi, n) => {
+      const r = foods[fi], p = portionsOf(r)[0];
+      const li = document.createElement('li');
+      li.id = 'food-opt-' + n; li.setAttribute('role', 'option'); li.dataset.n = n;
+      const kc = p ? Math.round(r[F.kcal] * p.g / 100) : r[F.kcal];
+      li.innerHTML = `<span><span class="r-name"></span><span class="r-meta"><span class="tag"></span><span class="r-p"></span></span></span><span class="r-kcal"></span>`;
+      li.querySelector('.r-name').textContent = r[0];
+      li.querySelector('.tag').textContent = r[1] === 1 ? 'As eaten' : 'Lab';
+      li.querySelector('.r-p').textContent = `P ${fmtAmt(r[F.protein] || 0, 'g')} g · C ${fmtAmt(r[F.carbs] || 0, 'g')} g · F ${fmtAmt(r[F.fat] || 0, 'g')} g per 100 g`;
+      li.querySelector('.r-kcal').innerHTML = `${nf.format(kc)}<small></small>`;
+      li.querySelector('.r-kcal small').textContent = p ? p.label : 'per 100 g';
+      ul.appendChild(li);
+    });
+    markActive();
+    openResults();
+  }
+  function openResults() { $('#food-results').hidden = false; $('#food-q').setAttribute('aria-expanded', 'true'); }
+  function closeResults() { $('#food-results').hidden = true; $('#food-q').setAttribute('aria-expanded', 'false'); $('#food-q').removeAttribute('aria-activedescendant'); }
+  function markActive() {
+    [...$('#food-results').children].forEach((li, n) => li.setAttribute('aria-selected', n === activeIdx));
+    const a = document.getElementById('food-opt-' + activeIdx);
+    if (a) { $('#food-q').setAttribute('aria-activedescendant', a.id); a.scrollIntoView({ block: 'nearest' }); }
+  }
+
+  function pickFood(fi) {
+    const r = foods[fi];
+    picked = { r, portions: portionsOf(r) };
+    $('#pick-name').textContent = r[0];
+    const src = $('#pick-src');
+    src.textContent = `USDA ${r[1] === 1 ? 'FNDDS' : 'SR Legacy'} · FDC #${r[2]}`;
+    src.href = `https://fdc.nal.usda.gov/food-details/${r[2]}/nutrients`;
+    const sel = $('#pick-portion');
+    sel.innerHTML = '';
+    picked.portions.forEach((p, n) => sel.add(new Option(`${p.label} (${fmtAmt(p.g, 'g')} g)`, 'p' + n)));
+    sel.add(new Option('100 g', 'hundred'));
+    sel.add(new Option('grams', 'grams'));
+    sel.value = picked.portions.length ? 'p0' : 'hundred';
+    $('#pick-qty').value = 1;
+    $('#pick').hidden = false;
+    closeResults();
+    $('#food-q').value = '';
+    renderPick();
+    $('#pick-qty').focus();
+  }
+  function pickGrams() {
+    const qty = Math.max(0, +$('#pick-qty').value || 0), v = $('#pick-portion').value;
+    if (v === 'grams') return { g: qty, serving: `${fmtAmt(qty, 'g')} g` };
+    if (v === 'hundred') return { g: qty * 100, serving: `${fmtAmt(qty, 'g')} × 100 g` };
+    const p = picked.portions[+v.slice(1)];
+    return { g: qty * p.g, serving: `${fmtAmt(qty, 'g')} × ${p.label} (${fmtAmt(qty * p.g, 'g')} g)` };
+  }
+  function pickValues() {
+    const { g, serving } = pickGrams(), r = picked.r, f = g / 100;
+    const val = k => r[F[k]] == null ? null : r[F[k]] * f;
+    return { g, serving, kcal: Math.round(r[F.kcal] * f), protein: val('protein'), carbs: val('carbs'), sugar: val('sugar'), fat: val('fat'), satfat: val('satfat'), fiber: val('fiber'), sodium: val('sodium') };
+  }
+  function renderPick() {
+    if (!picked) return;
+    const v = pickValues();
+    const cells = [['Calories', v.kcal, 'kcal', 'kcal'], ['Protein', v.protein, 'g'], ['Carbs', v.carbs, 'g'], ['Sugar', v.sugar, 'g'],
+      ['Fat', v.fat, 'g'], ['Sat. fat', v.satfat, 'g'], ['Fiber', v.fiber, 'g'], ['Sodium', v.sodium, 'mg']];
+    $('#pick-nutr').innerHTML = cells.map(([k, val, unit, cls]) =>
+      `<div class="${cls || ''}"><span class="k">${k}</span><span class="num">${val == null ? '–' : (unit === 'kcal' ? nf.format(val) : fmtAmt(val, unit))}<small> ${val == null ? '' : unit}</small></span></div>`).join('');
+    $('#pick-log').disabled = !(v.g > 0);
+  }
+  function closePick() { picked = null; $('#pick').hidden = true; }
+
+  $('#food-q').addEventListener('input', runSearch);
+  $('#food-q').addEventListener('focus', () => { if ($('#food-q').value.trim()) runSearch(); });
+  $('#food-q').addEventListener('keydown', e => {
+    const open = !$('#food-results').hidden;
+    if (e.key === 'ArrowDown' && open && results.length) { e.preventDefault(); activeIdx = (activeIdx + 1) % results.length; markActive(); }
+    else if (e.key === 'ArrowUp' && open && results.length) { e.preventDefault(); activeIdx = (activeIdx - 1 + results.length) % results.length; markActive(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (open && activeIdx >= 0) pickFood(results[activeIdx]); }
+    else if (e.key === 'Escape') closeResults();
+  });
+  $('#food-results').addEventListener('mousedown', e => e.preventDefault());
+  $('#food-results').addEventListener('click', e => {
+    const li = e.target.closest('li[data-n]'); if (li) pickFood(results[+li.dataset.n]);
+  });
+  $('#food-q').addEventListener('blur', () => setTimeout(closeResults, 120));
+  $('#pick-qty').addEventListener('input', renderPick);
+  $('#pick-portion').addEventListener('change', () => {
+    if ($('#pick-portion').value === 'grams') $('#pick-qty').value = 100;
+    else if (+$('#pick-qty').value > 20) $('#pick-qty').value = 1;
+    renderPick();
+  });
+  $('#pick-close').addEventListener('click', closePick);
+  $('#pick-log').addEventListener('click', () => {
+    if (!picked) return;
+    const v = pickValues();
+    if (!(v.g > 0)) return;
+    const r1 = x => x == null ? null : Math.round(x * 10) / 10;
+    const meal = { id: uid(), name: picked.r[0], fdc: picked.r[2], serving: v.serving, grams: r1(v.g), kcal: v.kcal,
+      protein: r1(v.protein), carbs: r1(v.carbs), sugar: r1(v.sugar), fat: r1(v.fat), satfat: r1(v.satfat), fiber: r1(v.fiber),
+      sodium: v.sodium == null ? null : Math.round(v.sodium) };
+    mutateDay(state.view, d => d.meals.push(meal));
+    toast(`Logged ${nf.format(v.kcal)} kcal of ${picked.r[0].split(',')[0]}.`);
+    closePick();
+    $('#food-q').focus();
+  });
+  $('#meals-list').addEventListener('click', e => {
+    const li = e.target.closest('.meal');
+    if (li && e.target.closest('.del')) mutateDay(state.view, d => { d.meals = d.meals.filter(m => m.id !== li.dataset.id); });
+  });
+
+  $('#water-goal').addEventListener('change', e => {
+    const v = Math.round(+e.target.value);
+    if (v >= 1 && v <= 30) { state.settings.waterGoal = v; saveSettings(); } else e.target.value = state.settings.waterGoal;
+  });
+  $('#kcal-goal').addEventListener('change', e => {
+    const v = Math.round(+e.target.value);
+    if (v >= 500 && v <= 10000) { state.settings.calorieGoal = v; saveSettings(); } else e.target.value = state.settings.calorieGoal;
+  });
+
+  const goTo = k => { state.view = k; render(); };
+  $('#prev-day').addEventListener('click', () => goTo(addDays(state.view, -1)));
+  $('#next-day').addEventListener('click', () => goTo(addDays(state.view, 1)));
+  $('#today-btn').addEventListener('click', () => goTo(state.today));
+  $('#range-seg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.range = +b.dataset.range; render();
+    try { localStorage.setItem(LS_KEY + '-range', state.range); } catch (err) {}
+  });
+  document.querySelector('.charts').addEventListener('click', e => {
+    const c = e.target.closest('.col'); if (!c) return;
+    goTo(c.dataset.k);
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+
+  // Roll over to a fresh day at midnight.
+  setInterval(() => {
+    const now = keyOf(new Date());
+    if (now !== state.today) {
+      const wasToday = state.view === state.today;
+      state.today = now;
+      if (wasToday) state.view = now;
+      render();
+    }
+  }, 30000);
+
+  /* ---------- Boot ---------- */
+  function markLoaded() {
+    if (state.loaded) return;
+    state.loaded = true;
+    document.body.classList.remove('locked');
+  }
+
+  async function init() {
+    try { const r = +localStorage.getItem(LS_KEY + '-range'); if ([7, 14, 30].includes(r)) state.range = r; } catch (e) {}
+    document.body.classList.add('locked');
+    render();
+    loadFoods();
+    loadLocal();
+    markLoaded();
+    setSync('ok', 'Saved in this browser');
+    render();
+  }
+  init();
+})();
+</script>
+
+</body>
+</html>
