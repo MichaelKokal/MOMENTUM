@@ -25,6 +25,7 @@ img { max-width: 100%; }
   --workout: #E2551B;
   --water: #1592CF;
   --kcal: #B97A0E;
+  --weight: #7A4CE0;
   --good: #1C9460;
   --over: #D13A3A;
   --on-color: #FFFFFF;
@@ -35,14 +36,14 @@ img { max-width: 100%; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0D131A; --surface: #151D27; --ink: #E5ECF4; --muted: #8C9CAF; --line: #243041; --track: #1F2A38;
-    --accent: #7088FF; --workout: #FF7A42; --water: #45B6EE; --kcal: #E6A83A; --good: #3CC88B; --over: #FF6B6B;
+    --accent: #7088FF; --workout: #FF7A42; --water: #45B6EE; --kcal: #E6A83A; --weight: #A98BFF; --good: #3CC88B; --over: #FF6B6B;
     --on-color: #0D131A; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0D131A; --surface: #151D27; --ink: #E5ECF4; --muted: #8C9CAF; --line: #243041; --track: #1F2A38;
-  --accent: #7088FF; --workout: #FF7A42; --water: #45B6EE; --kcal: #E6A83A; --good: #3CC88B; --over: #FF6B6B;
+  --accent: #7088FF; --workout: #FF7A42; --water: #45B6EE; --kcal: #E6A83A; --weight: #A98BFF; --good: #3CC88B; --over: #FF6B6B;
   --on-color: #0D131A; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
   color-scheme: dark;
 }
@@ -121,6 +122,7 @@ button { cursor: pointer; }
 #card-water { --c: var(--water); }
 #card-kcal { --c: var(--kcal); }
 #card-kcal.over { --c: var(--over); }
+#card-weight { --c: var(--weight); grid-column: 1 / -1; }
 
 .bar-track { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; }
 .bar-fill { height: 100%; width: 0; border-radius: inherit; background: var(--c); transition: width .9s cubic-bezier(.34,1.3,.5,1), background .3s; position: relative; overflow: hidden; }
@@ -257,6 +259,22 @@ button { cursor: pointer; }
 
 #card-kcal.over > .bar-track .bar-fill { background: repeating-linear-gradient(-45deg, var(--over) 0 8px, color-mix(in srgb, var(--over) 75%, var(--surface)) 8px 16px); }
 
+/* Weight */
+.seg.small { padding: 2px; }
+.seg.small button { padding: 4px 10px; font-size: 12px; }
+.weight-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 24px; align-items: start; }
+.weight-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.weight-change { font-size: 13.5px; }
+.weight-change b { font-weight: 600; }
+.weight-change .down { color: var(--good); }
+.weight-change .up { color: var(--kcal); }
+.plot.wplot { height: 140px; }
+.wplot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.wplot polyline { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.wdot { position: absolute; width: 10px; height: 10px; margin: 0 0 -5px -5px; border-radius: 50%; background: var(--surface); border: 2px solid var(--c); pointer-events: none; z-index: 2; transition: transform .2s; }
+.wdot.sel { background: var(--c); transform: scale(1.25); }
+.wempty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 0 16px; font-size: 13px; color: var(--muted); }
+
 /* ---------- Progress board ---------- */
 .board { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; display: grid; gap: 22px; }
 .board-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -298,6 +316,7 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
 @media (max-width: 760px) {
   .grid { grid-template-columns: minmax(0, 1fr); }
   .food-grid { grid-template-columns: minmax(0, 1fr); }
+  .weight-grid { grid-template-columns: minmax(0, 1fr); }
   .pick-nutr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .day { grid-template-columns: minmax(0, 1fr); padding: 18px; }
@@ -338,6 +357,7 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
           <span>Water <b id="meta-water">0 glasses</b></span>
           <span>Calories <b id="meta-kcal">0 kcal</b></span>
           <span>Protein <b id="meta-protein">0 g</b></span>
+          <span id="meta-weight-wrap" hidden>Weight <b id="meta-weight"></b></span>
         </div>
       </div>
       <div class="ring-wrap" id="ring-wrap">
@@ -485,6 +505,42 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
           </div>
         </div>
       </section>
+
+      <section class="card" id="card-weight">
+        <div class="card-head">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 9.5a5 5 0 0 1 7 0"/><path d="M12 9.5l1.5-1.8"/></svg></div>
+          <h2>Weight</h2>
+          <div class="seg small" id="weight-unit" role="group" aria-label="Weight unit">
+            <button type="button" data-unit="lb" aria-pressed="true">lb</button>
+            <button type="button" data-unit="kg" aria-pressed="false">kg</button>
+          </div>
+        </div>
+        <div class="weight-grid">
+          <div class="weight-col">
+            <div>
+              <div class="big"><span id="weight-num">–</span> <small class="weight-u">lb</small></div>
+              <div class="sub-line weight-change" id="weight-change">Log your weight to start a trend.</div>
+            </div>
+            <form class="add" id="weight-form" autocomplete="off">
+              <input type="number" id="weight-input" placeholder="Weight on this day" aria-label="Weight on this day" step="0.1">
+              <button class="add-btn" type="submit" id="weight-save">Log</button>
+              <button class="icon-btn" type="button" id="weight-clear" title="Remove this day's weight" aria-label="Remove this day's weight" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </form>
+            <label class="goal-row">Goal weight <input type="number" id="weight-goal" step="0.1" placeholder="optional"> <span class="weight-u">lb</span> <b id="weight-togo"></b></label>
+          </div>
+          <div class="chart" id="chart-weight">
+            <div class="chart-head"><span class="label">Last 30 days</span><span class="key" id="weight-trend"></span></div>
+            <div class="plot wplot">
+              <div class="goal" hidden><span></span></div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline vector-effect="non-scaling-stroke"/></svg>
+              <div class="wdots"></div>
+              <div class="cols"></div>
+              <div class="wempty" hidden>Log your weight on a few days to see your trend here.</div>
+            </div>
+            <div class="xlabels"></div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <section class="board" aria-label="Progress over time">
@@ -562,7 +618,7 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
   const DEFAULT_MACRO_GOALS = Object.fromEntries(MACROS.map(m => [m.key, m.def]));
 
   const state = {
-    settings: { waterGoal: 8, calorieGoal: 2200, macroGoals: { ...DEFAULT_MACRO_GOALS }, routine: { tasks: [], workouts: [] } },
+    settings: { waterGoal: 8, calorieGoal: 2200, macroGoals: { ...DEFAULT_MACRO_GOALS }, routine: { tasks: [], workouts: [] }, weightUnit: 'lb', weightGoal: null },
     days: {},
     today: keyOf(new Date()),
     view: keyOf(new Date()),
@@ -579,6 +635,8 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
       calorieGoal: Math.max(1, +s.calorieGoal || 2200),
       macroGoals: Object.fromEntries(MACROS.map(m => [m.key, +mg[m.key] > 0 ? +mg[m.key] : m.def])),
       routine: { tasks: Array.isArray(r.tasks) ? r.tasks : [], workouts: Array.isArray(r.workouts) ? r.workouts : [] },
+      weightUnit: s.weightUnit === 'kg' ? 'kg' : 'lb',
+      weightGoal: +s.weightGoal > 0 ? +s.weightGoal : null,
     };
   }
   function normDay(o, key) {
@@ -588,13 +646,14 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
       workouts: Array.isArray(o.workouts) ? o.workouts : [],
       water: Math.max(0, +o.water || 0),
       meals: Array.isArray(o.meals) ? o.meals : [],
+      weight: +o.weight > 0 ? +o.weight : null, // kg
     };
   }
   // Days not saved yet: today and future days start from the daily routine; past days start empty.
   function getDay(key, create) {
     if (state.days[key]) return state.days[key];
     const r = state.settings.routine;
-    const fresh = { date: key, tasks: [], workouts: [], water: 0, meals: [] };
+    const fresh = { date: key, tasks: [], workouts: [], water: 0, meals: [], weight: null };
     if (key >= state.today) {
       fresh.tasks = r.tasks.map(x => ({ id: x.id, rid: x.id, name: x.name, done: false }));
       fresh.workouts = r.workouts.map(x => ({ id: x.id, rid: x.id, name: x.name, detail: x.detail || '', done: false }));
@@ -715,6 +774,7 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
     renderChecklist('tasks', day);
     renderWater(day);
     renderCalories(day);
+    renderWeight(day);
     renderHistory();
     state.justToggled = null;
   }
@@ -853,6 +913,130 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
     $('#meals-empty').hidden = day.meals.length > 0;
     const gi = $('#kcal-goal');
     if (document.activeElement !== gi) gi.value = goal;
+  }
+
+  /* ---------- Weight ---------- */
+  // Weights are stored in kg and shown in the unit picked on the card.
+  const KG_PER_LB = 0.45359237;
+  const WEIGHT_DAYS = 30;
+  const WEIGHT_LIMITS = { lb: [50, 1000], kg: [20, 450] };
+  const wUnit = () => state.settings.weightUnit;
+  const toUnit = kg => wUnit() === 'lb' ? kg / KG_PER_LB : kg;
+  const fromUnit = v => wUnit() === 'lb' ? v * KG_PER_LB : v;
+  const round1 = v => Math.round(v * 10) / 10;
+  const fmtW = kg => round1(toUnit(kg)).toFixed(1);
+  const fmtChange = kg => {
+    const v = round1(toUnit(kg));
+    return `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v).toFixed(1)} ${wUnit()}`;
+  };
+  const shortDate = k => parseKey(k).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+  // The most recent weigh-in before (or, with `orOn`, on) a day.
+  function weighInBefore(key, orOn) {
+    let best = null;
+    for (const k in state.days) {
+      const w = state.days[k].weight;
+      if (w && (k < key || (orOn && k === key)) && (!best || k > best.k)) best = { k, w };
+    }
+    return best;
+  }
+
+  function renderWeight(day) {
+    const unit = wUnit(), goal = state.settings.weightGoal;
+    document.querySelectorAll('#weight-unit button').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === unit));
+    document.querySelectorAll('.weight-u').forEach(el => { el.textContent = unit; });
+    const [lo, hi] = WEIGHT_LIMITS[unit];
+    const inp = $('#weight-input');
+    inp.min = lo; inp.max = hi;
+    if (document.activeElement !== inp) inp.value = day.weight ? fmtW(day.weight) : '';
+    $('#weight-save').textContent = day.weight ? 'Update' : 'Log';
+    $('#weight-clear').hidden = !day.weight;
+    $('#weight-num').textContent = day.weight ? fmtW(day.weight) : '–';
+    $('#meta-weight-wrap').hidden = !day.weight;
+    if (day.weight) $('#meta-weight').textContent = `${fmtW(day.weight)} ${unit}`;
+
+    // Change since the previous weigh-in, or a pointer to the last one.
+    const prev = weighInBefore(state.view);
+    const ch = $('#weight-change');
+    if (day.weight && prev) {
+      const diff = day.weight - prev.w;
+      const cls = Math.abs(toUnit(diff)) < 0.05 ? '' : diff < 0 ? 'down' : 'up';
+      ch.innerHTML = `<b class="${cls}"></b> since ${shortDate(prev.k)}`;
+      ch.querySelector('b').textContent = fmtChange(diff);
+    } else if (day.weight) {
+      ch.textContent = 'Your first weigh-in. Log again on another day to see the change.';
+    } else if (prev) {
+      ch.textContent = `No weigh-in on this day. Last one: ${fmtW(prev.w)} ${unit} on ${shortDate(prev.k)}.`;
+    } else {
+      ch.textContent = 'Log your weight to start a trend.';
+    }
+
+    const gi = $('#weight-goal');
+    gi.min = lo; gi.max = hi;
+    if (document.activeElement !== gi) gi.value = goal ? fmtW(goal) : '';
+    const latest = weighInBefore(state.view, true);
+    const left = goal && latest ? Math.abs(round1(toUnit(latest.w - goal))) : null;
+    $('#weight-togo').textContent = left == null ? '' : left < 0.1 ? '· Goal reached' : `· ${left.toFixed(1)} ${unit} to go`;
+
+    renderWeightChart();
+  }
+
+  function renderWeightChart() {
+    const el = $('#chart-weight'), today = state.today, N = WEIGHT_DAYS;
+    const pts = [];
+    for (let i = N - 1; i >= 0; i--) {
+      const k = addDays(today, -i), d = state.days[k];
+      pts.push({ k, w: d && d.weight ? toUnit(d.weight) : null });
+    }
+    const logged = pts.map((p, i) => ({ ...p, i })).filter(p => p.w != null);
+    const unit = wUnit(), goal = state.settings.weightGoal ? toUnit(state.settings.weightGoal) : null;
+
+    // Y range: the logged weights with some headroom. A nearby goal is pulled into view;
+    // a far-off one would flatten the line, so it stays off the chart.
+    const vals = logged.map(p => p.w);
+    const minPad = unit === 'lb' ? 2 : 1;
+    const near = goal != null && vals.length &&
+      Math.min(Math.abs(goal - Math.min(...vals)), Math.abs(goal - Math.max(...vals))) <= Math.max(Math.max(...vals) - Math.min(...vals), minPad * 2) + minPad * 2;
+    if (near) vals.push(goal);
+    const minW = Math.min(...vals), maxW = Math.max(...vals);
+    const pad = Math.max((maxW - minW) * 0.12, minPad);
+    const yLo = minW - pad, yHi = maxW + pad;
+    const x = i => (i + 0.5) / N * 100;
+    const y = v => (v - yLo) / (yHi - yLo) * 100;
+
+    el.querySelector('.wempty').hidden = logged.length > 0;
+    el.querySelector('polyline').setAttribute('points', logged.length > 1 ? logged.map(p => `${x(p.i).toFixed(2)},${(100 - y(p.w)).toFixed(2)}`).join(' ') : '');
+    el.querySelector('.wdots').innerHTML = logged.map(p =>
+      `<span class="wdot${p.k === state.view ? ' sel' : ''}" style="left:${x(p.i).toFixed(2)}%;bottom:${y(p.w).toFixed(2)}%"></span>`).join('');
+
+    const g = el.querySelector('.goal');
+    g.hidden = !(logged.length && goal != null && goal > yLo && goal < yHi);
+    if (!g.hidden) { g.style.bottom = y(goal) + '%'; g.querySelector('span').textContent = `Goal ${round1(goal).toFixed(1)}`; }
+
+    $('#weight-trend').textContent = logged.length > 1
+      ? `${fmtChange(fromUnit(logged[logged.length - 1].w - logged[0].w))} since ${shortDate(logged[0].k)}`
+      : logged.length ? '1 weigh-in' : '';
+
+    // Invisible day columns: hover for the value, click to open that day.
+    const cols = el.querySelector('.cols'), xl = el.querySelector('.xlabels');
+    if (cols.children.length !== N || cols.firstChild.dataset.k !== pts[0].k) {
+      cols.innerHTML = ''; xl.innerHTML = '';
+      pts.forEach((p, i) => {
+        const b = document.createElement('button');
+        b.className = 'col'; b.type = 'button'; b.dataset.k = p.k;
+        cols.appendChild(b);
+        const s = document.createElement('span');
+        s.textContent = (i % 5 === 4 || p.k === today) ? parseKey(p.k).getDate() : '';
+        s.classList.toggle('today', p.k === today);
+        xl.appendChild(s);
+      });
+    }
+    [...cols.children].forEach((b, i) => {
+      const p = pts[i];
+      const label = `${fmtDate(p.k)}: ${p.w == null ? 'No weigh-in' : `${p.w.toFixed(1)} ${unit}`}`;
+      b.title = label; b.setAttribute('aria-label', label);
+      b.classList.toggle('sel', p.k === state.view);
+    });
   }
 
   /* ---------- History ---------- */
@@ -1216,6 +1400,33 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
   $('#meals-list').addEventListener('click', e => {
     const li = e.target.closest('.meal');
     if (li && e.target.closest('.del')) mutateDay(state.view, d => { d.meals = d.meals.filter(m => m.id !== li.dataset.id); });
+  });
+
+  $('#weight-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = +$('#weight-input').value, [lo, hi] = WEIGHT_LIMITS[wUnit()];
+    if (!(v >= lo && v <= hi)) { toast(`Enter a weight between ${lo} and ${hi} ${wUnit()}.`); $('#weight-input').focus(); return; }
+    const had = getDay(state.view).weight;
+    mutateDay(state.view, d => { d.weight = Math.round(fromUnit(v) * 1000) / 1000; });
+    $('#weight-input').blur();
+    toast(had ? `Updated to ${v.toFixed(1)} ${wUnit()}.` : `Logged ${v.toFixed(1)} ${wUnit()}.`);
+  });
+  $('#weight-clear').addEventListener('click', () => mutateDay(state.view, d => { d.weight = null; }));
+  $('#weight-goal').addEventListener('change', e => {
+    const raw = e.target.value.trim(), v = +raw, [lo, hi] = WEIGHT_LIMITS[wUnit()];
+    if (raw === '') state.settings.weightGoal = null;
+    else if (v >= lo && v <= hi) state.settings.weightGoal = Math.round(fromUnit(v) * 1000) / 1000;
+    else { toast(`Enter a goal between ${lo} and ${hi} ${wUnit()}.`); render(); return; }
+    saveSettings();
+  });
+  $('#weight-unit').addEventListener('click', e => {
+    const b = e.target.closest('button[data-unit]');
+    if (!b || b.dataset.unit === wUnit()) return;
+    state.settings.weightUnit = b.dataset.unit;
+    saveSettings();
+  });
+  $('#chart-weight .cols').addEventListener('click', e => {
+    const c = e.target.closest('.col'); if (c) goTo(c.dataset.k);
   });
 
   $('#water-goal').addEventListener('change', e => {

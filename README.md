@@ -9,6 +9,7 @@ A daily progress tracker for workouts, tasks, water and food. Plan your days ahe
 - **Workouts and daily tasks.** Add them to any day, including future days, and check them off. Mark an item "Every day" to have it show up on each new day automatically.
 - **Water.** Tap glasses to fill them in, with an adjustable daily goal (250 ml per glass).
 - **Food lookup with real nutrition data.** Search more than 13,000 foods, pick a serving size, and log calories, protein, carbs, sugar, fat, saturated fat, fiber and sodium. You can also enter calories by hand.
+- **Weight.** Log your weight on any day in lb or kg and see the change since your last weigh-in, a 30-day trend line, and how far you are from an optional goal weight.
 - **Daily goals.** Calorie and macro goals start at the FDA Daily Values and can be changed.
 - **Fresh page every day.** At midnight the tracker moves to a new day with your daily routine ready to check off.
 - **Progress over time.** Charts for checklist completion, water, calories and protein over the last 7, 14 or 30 days, plus your current streak and averages.
