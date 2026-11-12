@@ -169,6 +169,12 @@ button { cursor: pointer; }
 .chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; font-size: 12.5px; color: var(--muted); transition: border-color .15s, color .15s, transform .12s; }
 .chip:hover { border-color: var(--c); color: var(--ink); }
 .chip:active { transform: scale(.94); }
+.recent { display: grid; gap: 8px; }
+.recent-chip { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; padding: 6px 12px; color: var(--ink); }
+.recent-chip .rc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 22ch; }
+.recent-chip .rc-kcal { flex: none; font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--c); font-variant-numeric: tabular-nums; }
+.recent-chip .rc-plus { flex: none; font-weight: 700; color: var(--muted); }
+.recent-chip:hover .rc-plus { color: var(--c); }
 
 /* Water */
 .water-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -450,6 +456,11 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
               </div>
               <ul class="results" id="food-results" role="listbox" hidden></ul>
               <div class="sub-line" id="food-status">Loading the food database…</div>
+            </div>
+
+            <div class="recent" id="recent" hidden>
+              <div class="label">Log again</div>
+              <div class="chips" id="recent-chips"></div>
             </div>
 
             <div class="pick" id="pick" hidden>
@@ -910,10 +921,54 @@ body.locked main { pointer-events: none; opacity: .65; transition: opacity .3s; 
       li.querySelector('.del').setAttribute('aria-label', 'Remove ' + m.name);
     });
     renderMacros(day);
+    renderRecent();
     $('#meals-empty').hidden = day.meals.length > 0;
     const gi = $('#kcal-goal');
     if (document.activeElement !== gi) gi.value = goal;
   }
+
+  /* ---------- Log again: recent foods ---------- */
+  // The last few different foods you logged (same food and serving counts once), newest first.
+  const RECENT_MAX = 8;
+  let recentFoods = [], recentSig = '';
+  function findRecentFoods() {
+    const found = [], seen = new Set();
+    const keys = Object.keys(state.days).sort().reverse();
+    for (const k of keys) {
+      const meals = state.days[k].meals;
+      for (let i = meals.length - 1; i >= 0; i--) {
+        const m = meals[i], id = `${m.name}|${m.serving || ''}|${m.kcal}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        found.push(m);
+        if (found.length === RECENT_MAX) return found;
+      }
+    }
+    return found;
+  }
+  function renderRecent() {
+    recentFoods = findRecentFoods();
+    $('#recent').hidden = !recentFoods.length;
+    const sig = recentFoods.map(m => m.id).join();
+    if (sig === recentSig) return; // nothing changed, keep the buttons (and keyboard focus) as they are
+    recentSig = sig;
+    $('#recent-chips').replaceChildren(...recentFoods.map((m, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip recent-chip'; b.dataset.i = i;
+      b.innerHTML = '<span class="rc-plus" aria-hidden="true">+</span><span class="rc-name"></span><span class="rc-kcal"></span>';
+      b.querySelector('.rc-name').textContent = m.name.split(',').slice(0, 2).join(',');
+      b.querySelector('.rc-kcal').textContent = `${nf.format(m.kcal)} kcal`;
+      b.title = `Log again: ${m.name}${m.serving ? `, ${m.serving}` : ''} (${nf.format(m.kcal)} kcal)`;
+      b.setAttribute('aria-label', b.title);
+      return b;
+    }));
+  }
+  $('#recent-chips').addEventListener('click', e => {
+    const b = e.target.closest('.recent-chip'); if (!b) return;
+    const m = recentFoods[+b.dataset.i]; if (!m) return;
+    mutateDay(state.view, d => d.meals.push({ ...clone(m), id: uid() }));
+    toast(`Logged ${nf.format(m.kcal)} kcal of ${m.name.split(',').slice(0, 2).join(',')}${m.serving ? ` (${m.serving})` : ''}.`);
+  });
 
   /* ---------- Weight ---------- */
   // Weights are stored in kg and shown in the unit picked on the card.
